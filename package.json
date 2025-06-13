@@ -1,0 +1,33 @@
+{
+  "name": "it-asset-management",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.9.0",
+    "@types/uuid": "^10.0.0",
+    "cloudinary": "^2.6.1",
+    "jspdf": "^3.0.1",
+    "lucide-react": "^0.514.0",
+    "next": "15.3.3",
+    "ngrok": "^5.0.0-beta.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "uuid": "^11.1.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "prisma": "^6.9.0",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
