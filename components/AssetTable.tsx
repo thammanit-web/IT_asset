@@ -4,6 +4,7 @@ import { Asset } from '@/types/asset';
 import { Edit, Trash2, Eye, Download } from 'lucide-react';
 import Image from 'next/image';
 import * as XLSX from 'xlsx';
+import { useState } from 'react';
 
 interface AssetTableProps {
   assets: Asset[];
@@ -13,6 +14,8 @@ interface AssetTableProps {
 }
 
 export default function AssetTable({ assets, onEdit, onDelete, onView }: AssetTableProps) {
+  const [isExporting, setIsExporting] = useState(false);
+
   const formatDate = (date: Date | string) => {
     return new Date(date).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -38,41 +41,63 @@ export default function AssetTable({ assets, onEdit, onDelete, onView }: AssetTa
     }
   };
 
-  const exportToExcel = () => {
-    // Prepare data for Excel export
-    const exportData = assets.map(asset => ({
-      'ชื่อครุภัณฑ์': asset.assetName,
-      'หมายเลขครุภัณฑ์': asset.assetID,
-      'คำอธิบาย': asset.description || '',
-      'ประเภท': asset.groupType,
-      'สถานะ': asset.status,
-      'วันที่เพิ่ม': formatDate(asset.createdAt),
-    }));
+  const exportToExcel = async () => {
+    setIsExporting(true);
+    try {
+      // Fetch all assets from the API
+      const response = await fetch('/api/assets?all=true', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
-    // Create workbook and worksheet
-    const workbook = XLSX.utils.book_new();
-    const worksheet = XLSX.utils.json_to_sheet(exportData);
+      if (!response.ok) {
+        throw new Error('Failed to fetch all assets');
+      }
 
-    // Set column widths
-    const columnWidths = [
-      { wch: 25 }, // Asset Name
-      { wch: 15 }, // Asset ID
-      { wch: 40 }, // Description
-      { wch: 15 }, // Group Type
-      { wch: 12 }, // Status
-      { wch: 15 }, // Created Date
-    ];
-    worksheet['!cols'] = columnWidths;
+      const allAssets: Asset[] = await response.json();
 
-    // Add worksheet to workbook
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Assets');
+      // Prepare data for Excel export
+      const exportData = allAssets.map(asset => ({
+        'ชื่อครุภัณฑ์': asset.assetName,
+        'หมายเลขครุภัณฑ์': asset.assetID,
+        'คำอธิบาย': asset.description || '',
+        'ประเภท': asset.groupType,
+        'สถานะ': asset.status,
+        'วันที่เพิ่ม': formatDate(asset.createdAt),
+      }));
 
-    // Generate filename with current date
-    const currentDate = new Date().toISOString().split('T')[0];
-    const filename = `export_${currentDate}.xlsx`;
+      // Create workbook and worksheet
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
 
-    // Save file
-    XLSX.writeFile(workbook, filename);
+      // Set column widths
+      const columnWidths = [
+        { wch: 25 }, // Asset Name
+        { wch: 15 }, // Asset ID
+        { wch: 40 }, // Description
+        { wch: 15 }, // Group Type
+        { wch: 12 }, // Status
+        { wch: 15 }, // Created Date
+      ];
+      worksheet['!cols'] = columnWidths;
+
+
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Assets');
+
+      // Generate filename with current date
+      const currentDate = new Date().toISOString().split('T')[0];
+      const filename = `export_assets_${currentDate}.xlsx`;
+
+      // Save file
+      XLSX.writeFile(workbook, filename);
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      alert('Failed to export data. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   if (assets.length === 0) {
@@ -89,10 +114,13 @@ export default function AssetTable({ assets, onEdit, onDelete, onView }: AssetTa
       <div className="flex justify-end">
         <button
           onClick={exportToExcel}
-          className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
+          disabled={isExporting}
+          className={`inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors ${
+            isExporting ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
         >
           <Download size={16} className="mr-2" />
-          Export to Excel
+          {isExporting ? 'Exporting...' : 'Export to Excel'}
         </button>
       </div>
 
@@ -119,9 +147,7 @@ export default function AssetTable({ assets, onEdit, onDelete, onView }: AssetTa
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 เวลาที่เพิ่ม
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                
-              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
