@@ -21,7 +21,7 @@ export default function AssetForm({ asset, onSubmit, onCancel, isOpen }: AssetFo
     assetID: '',
     description: '',
     groupType: 'computer',
-    status: 'active',
+    status: 'ใช้งาน',
     imgUrl: ''
   });
   const [loading, setLoading] = useState(false);
