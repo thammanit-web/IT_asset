@@ -26,15 +26,15 @@ export default function AssetTable({ assets, onEdit, onDelete, onView }: AssetTa
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'active':
+      case 'ใช้งาน':
         return 'bg-green-100 text-green-800';
-      case 'inactive':
+      case 'ไม่ใช้งาน':
         return 'bg-gray-100 text-gray-800';
-      case 'maintenance':
+      case 'ซ่อมบำรุง':
         return 'bg-yellow-100 text-yellow-800';
-      case 'retired':
+      case 'สำรอง':
         return 'bg-red-100 text-red-800';
-      case 'lost':
+      case 'สูญหาย':
         return 'bg-purple-100 text-purple-800';
       default:
         return 'bg-gray-100 text-gray-800';
