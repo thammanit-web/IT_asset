@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
 // GET /api/borrowing-records/borrower/[borrowerId] - Get all borrowing records for a specific borrower
-export async function GET(request: Request, { params }: { params: { borrowerId: string } }) {
-  const borrowerId = parseInt(params.borrowerId, 10);
+export async function GET(request: Request,   context: any) {
+  const borrowerId = parseInt(context.params.borrowerId, 10);
 
   if (isNaN(borrowerId)) {
     return NextResponse.json({ error: 'Invalid Borrower ID' }, { status: 400 });
