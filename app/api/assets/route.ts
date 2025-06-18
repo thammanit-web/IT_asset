@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/prisma';
 import { CreateAssetData } from '@/types/asset';
 
 // GET /api/assets - Get all assets with optional search, filter, or fetch all

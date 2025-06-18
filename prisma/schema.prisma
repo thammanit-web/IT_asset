@@ -1,25 +1,59 @@
-
+// prisma/schema.prisma
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgres"
+  provider = "postgresql" // Or your chosen database
   url      = env("DATABASE_URL")
 }
 
 model Asset {
-  id          Int      @id @default(autoincrement())
-  assetName   String   @db.VarChar(255)
-  assetID     String   @unique @db.VarChar(100)
-  description String?  @db.Text
-  groupType   String   @db.VarChar(100) 
-  status      String   @db.VarChar(50)  
-  imgUrl      String?  @db.VarChar(500)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           Int        @id @default(autoincrement())
+  assetName    String     @db.VarChar(255)
+  assetID      String     @unique @db.VarChar(100)
+  description  String?    @db.Text
+  groupType    String     @db.VarChar(100)
+  status       String     @db.VarChar(50) // e.g., "Available", "Borrowed", "Under Maintenance"
+  imgUrl       String?    @db.VarChar(500)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  borrowRecords BorrowingRecord[] // Link to borrowings
 
   @@map("assets")
 }
+
+// Borrower Model: Stores information about individuals borrowing items.
+model Borrower {
+  id            Int             @id @default(autoincrement())
+  fullName      String          @db.VarChar(255)
+  department    String          @db.VarChar(100) // e.g., "Accounting", "IT", "HR"
+  contactEmail  String?         @unique @db.VarChar(255) // Optional contact email, unique
+  contactPhone  String?         @db.VarChar(50)  // Optional contact phone
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  borrowRecords BorrowingRecord[] // Relation to BorrowingRecord
+
+  @@map("borrowers") // Maps the model to the 'borrowers' table
+}
+
+// BorrowingRecord Model: Links assets and borrowers, tracking borrow and return details.
+model BorrowingRecord {
+  id          Int      @id @default(autoincrement())
+  assetId     Int
+  borrowerId  Int
+  borrowDate  DateTime @default(now())
+  returnDate  DateTime? // Nullable if the item has not yet been returned
+  status      String   @db.VarChar(50) // "Borrowed" or "Returned"
+  notes       String?  @db.Text // Any additional notes about the borrowing
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  asset       Asset    @relation(fields: [assetId], references: [id])
+  borrower    Borrower @relation(fields: [borrowerId], references: [id])
+
+  @@map("borrowing_records") // Maps the model to the 'borrowing_records' table
+}
+
 
