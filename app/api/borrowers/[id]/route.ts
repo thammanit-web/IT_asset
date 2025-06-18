@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
+// Define a type for the context object
+interface Context {
+  params: {
+    id: string;
+  };
+}
+
 // GET /api/borrowers/[id]
-export async function GET(request: NextRequest, context: any) {
+export async function GET(request: NextRequest, context: Context) {
   const borrowerId = parseInt(context.params.id, 10);
 
   if (isNaN(borrowerId)) {
@@ -26,7 +33,7 @@ export async function GET(request: NextRequest, context: any) {
 }
 
 // PUT /api/borrowers/[id]
-export async function PUT(request: NextRequest, context: any) {
+export async function PUT(request: NextRequest, context: Context) {
   const borrowerId = parseInt(context.params.id, 10);
 
   if (isNaN(borrowerId)) {
@@ -61,7 +68,7 @@ export async function PUT(request: NextRequest, context: any) {
 }
 
 // DELETE /api/borrowers/[id]
-export async function DELETE(request: NextRequest, context: any) {
+export async function DELETE(request: NextRequest, context: Context) {
   const borrowerId = parseInt(context.params.id, 10);
 
   if (isNaN(borrowerId)) {
