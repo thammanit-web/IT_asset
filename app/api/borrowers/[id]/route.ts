@@ -1,9 +1,9 @@
-import { NextResponse,NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
-export async function GET(request: NextRequest) {
-  const id = request.nextUrl.pathname.split('/').pop(); // หรือใช้ regex, etc.
-  const borrowerId = parseInt(id || '', 10);
+// GET /api/borrowers/[id]
+export async function GET(request: NextRequest, context: { params: { id: string } }) {
+  const borrowerId = parseInt(context.params.id, 10);
 
   if (isNaN(borrowerId)) {
     return NextResponse.json({ error: 'Invalid Borrower ID' }, { status: 400 });
@@ -22,11 +22,12 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error(`Error fetching borrower with ID ${borrowerId}:`, error);
     return NextResponse.json({ error: 'Failed to fetch borrower' }, { status: 500 });
-  }}
+  }
+}
 
-// PUT /api/borrowers/[id] - Update borrower by ID
-export async function PUT(request: Request, {params}: { params: { id: string } }) {
-const borrowerId = parseInt(params.id, 10);
+// PUT /api/borrowers/[id]
+export async function PUT(request: NextRequest, context: { params: { id: string } }) {
+  const borrowerId = parseInt(context.params.id, 10);
 
   if (isNaN(borrowerId)) {
     return NextResponse.json({ error: 'Invalid Borrower ID' }, { status: 400 });
@@ -35,53 +36,61 @@ const borrowerId = parseInt(params.id, 10);
   let data: any;
   try {
     data = await request.json();
+
     const updatedBorrower = await prisma.borrower.update({
       where: { id: borrowerId },
-      data: data,
+      data,
     });
+
     return NextResponse.json(updatedBorrower, { status: 200 });
   } catch (error: any) {
     console.error(`Error updating borrower with ID ${borrowerId}:`, error);
+
     if (error.code === 'P2025') {
       return NextResponse.json({ error: 'Borrower not found' }, { status: 404 });
     }
+
     if (error.code === 'P2002' && error.meta?.target === 'contactEmail') {
-        return NextResponse.json({ error: `Borrower with email "${data?.contactEmail ?? ''}" already exists.` }, { status: 409 });
+      return NextResponse.json({
+        error: `Borrower with email "${data?.contactEmail ?? ''}" already exists.`,
+      }, { status: 409 });
     }
+
     return NextResponse.json({ error: 'Failed to update borrower' }, { status: 500 });
   }
 }
 
-// DELETE /api/borrowers/[id] - Delete borrower by ID
-export async function DELETE(request: Request, {params}: { params: { id: string } }) {
-const borrowerId = parseInt(params.id, 10);
+// DELETE /api/borrowers/[id]
+export async function DELETE(request: NextRequest, context: { params: { id: string } }) {
+  const borrowerId = parseInt(context.params.id, 10);
 
   if (isNaN(borrowerId)) {
     return NextResponse.json({ error: 'Invalid Borrower ID' }, { status: 400 });
   }
 
   try {
-    // Before deleting, check if there are any borrowing records associated with this borrower
     const associatedRecords = await prisma.borrowingRecord.count({
-      where: { borrowerId: borrowerId },
+      where: { borrowerId },
     });
 
     if (associatedRecords > 0) {
-      return NextResponse.json(
-        { error: 'Cannot delete borrower: They have associated borrowing records. Delete records first.' },
-        { status: 409 } // Conflict
-      );
+      return NextResponse.json({
+        error: 'Cannot delete borrower: They have associated borrowing records. Delete records first.',
+      }, { status: 409 });
     }
 
     await prisma.borrower.delete({
       where: { id: borrowerId },
     });
+
     return NextResponse.json({ message: 'Borrower deleted successfully' }, { status: 200 });
   } catch (error: any) {
     console.error(`Error deleting borrower with ID ${borrowerId}:`, error);
+
     if (error.code === 'P2025') {
       return NextResponse.json({ error: 'Borrower not found' }, { status: 404 });
     }
+
     return NextResponse.json({ error: 'Failed to delete borrower' }, { status: 500 });
   }
 }
