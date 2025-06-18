@@ -2,10 +2,9 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
 // GET /api/borrowing-records/[id] - Get borrowing record by ID
-export async function GET(request: Request, context: { params: { id: string } }) {
+export async function GET(request: Request, {params}: { params: { id: string } }) {
   // Explicitly await context.params before destructuring
-  const { id } = await context.params;
-  const recordId = parseInt(id, 10);
+const recordId = parseInt(params.id, 10);
 
   if (isNaN(recordId)) {
     return NextResponse.json({ error: 'Invalid Borrowing Record ID' }, { status: 400 });
@@ -28,10 +27,9 @@ export async function GET(request: Request, context: { params: { id: string } })
 }
 
 // PUT /api/borrowing-records/[id] - Update borrowing record by ID (e.g., mark as returned)
-export async function PUT(request: Request, context: { params: { id: string } }) {
+export async function PUT(request: Request, {params}: { params: { id: string } }) {
   // Explicitly await context.params before destructuring
-  const { id } = await context.params;
-  const recordId = parseInt(id, 10);
+const recordId = parseInt(params.id, 10);
 
   if (isNaN(recordId)) {
     return NextResponse.json({ error: 'Invalid Borrowing Record ID' }, { status: 400 });
@@ -99,10 +97,9 @@ export async function PUT(request: Request, context: { params: { id: string } })
 }
 
 // DELETE /api/borrowing-records/[id] - Delete borrowing record by ID
-export async function DELETE(request: Request, context: { params: { id: string } }) {
+export async function DELETE(request: Request, {params}: { params: { id: string } }) {
   // Explicitly await context.params before destructuring
-  const { id } = await context.params;
-  const recordId = parseInt(id, 10);
+const recordId = parseInt(params.id, 10);
 
   if (isNaN(recordId)) {
     return NextResponse.json({ error: 'Invalid Borrowing Record ID' }, { status: 400 });
