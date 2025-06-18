@@ -26,7 +26,7 @@ export async function GET(request: NextRequest, context: any) {
 }
 
 // PUT /api/borrowers/[id]
-export async function PUT(request: NextRequest, context: { params: { id: string } }) {
+export async function PUT(request: NextRequest, context: any) {
   const borrowerId = parseInt(context.params.id, 10);
 
   if (isNaN(borrowerId)) {
@@ -61,7 +61,7 @@ export async function PUT(request: NextRequest, context: { params: { id: string 
 }
 
 // DELETE /api/borrowers/[id]
-export async function DELETE(request: NextRequest, context: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, context: any) {
   const borrowerId = parseInt(context.params.id, 10);
 
   if (isNaN(borrowerId)) {
