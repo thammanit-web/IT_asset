@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
-// Define a type for the context object
-interface Context {
-  params: {
-    id: string;
-  };
-}
-
 // GET /api/borrowers/[id]
-export async function GET(request: NextRequest, context: Context) {
-  const borrowerId = parseInt(context.params.id, 10);
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } } // Corrected type for the second argument
+) {
+  const borrowerId = parseInt(params.id, 10);
 
   if (isNaN(borrowerId)) {
     return NextResponse.json({ error: 'Invalid Borrower ID' }, { status: 400 });
@@ -33,8 +29,11 @@ export async function GET(request: NextRequest, context: Context) {
 }
 
 // PUT /api/borrowers/[id]
-export async function PUT(request: NextRequest, context: Context) {
-  const borrowerId = parseInt(context.params.id, 10);
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } } // Corrected type for the second argument
+) {
+  const borrowerId = parseInt(params.id, 10);
 
   if (isNaN(borrowerId)) {
     return NextResponse.json({ error: 'Invalid Borrower ID' }, { status: 400 });
@@ -68,8 +67,11 @@ export async function PUT(request: NextRequest, context: Context) {
 }
 
 // DELETE /api/borrowers/[id]
-export async function DELETE(request: NextRequest, context: Context) {
-  const borrowerId = parseInt(context.params.id, 10);
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } } // Corrected type for the second argument
+) {
+  const borrowerId = parseInt(params.id, 10);
 
   if (isNaN(borrowerId)) {
     return NextResponse.json({ error: 'Invalid Borrower ID' }, { status: 400 });
