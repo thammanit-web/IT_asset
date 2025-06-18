@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
 // GET /api/borrowing-records/asset/[assetId] - Get all borrowing records for a specific asset
-export async function GET(request: Request, { params }: { params: { assetId: string } }) {
-  const assetId = parseInt(params.assetId, 10);
+export async function GET(request: Request, context: any) {
+  const assetId = parseInt(context.params.assetId, 10);
 
   if (isNaN(assetId)) {
     return NextResponse.json({ error: 'Invalid Asset ID' }, { status: 400 });
