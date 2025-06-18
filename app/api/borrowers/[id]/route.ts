@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
 // GET /api/borrowers/[id]
-export async function GET(request: NextRequest, context: { params: { id: string } }) {
+export async function GET(request: NextRequest, context: any) {
   const borrowerId = parseInt(context.params.id, 10);
 
   if (isNaN(borrowerId)) {
