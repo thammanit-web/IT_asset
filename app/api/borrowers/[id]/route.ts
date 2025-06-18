@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextResponse,NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
 
-// GET /api/borrowers/[id] - Get borrower by ID
-export async function GET(request: Request, {params}: { params: { id: string } }) {
-const borrowerId = parseInt(params.id, 10);
+export async function GET(request: NextRequest) {
+  const id = request.nextUrl.pathname.split('/').pop(); // หรือใช้ regex, etc.
+  const borrowerId = parseInt(id || '', 10);
 
   if (isNaN(borrowerId)) {
     return NextResponse.json({ error: 'Invalid Borrower ID' }, { status: 400 });
@@ -17,12 +17,12 @@ const borrowerId = parseInt(params.id, 10);
     if (!borrower) {
       return NextResponse.json({ error: 'Borrower not found' }, { status: 404 });
     }
+
     return NextResponse.json(borrower, { status: 200 });
   } catch (error) {
     console.error(`Error fetching borrower with ID ${borrowerId}:`, error);
     return NextResponse.json({ error: 'Failed to fetch borrower' }, { status: 500 });
-  }
-}
+  }}
 
 // PUT /api/borrowers/[id] - Update borrower by ID
 export async function PUT(request: Request, {params}: { params: { id: string } }) {
