@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
 // GET /api/borrowers/[id] - Get borrower by ID
-export async function GET(request: Request, { params }: { params: { id: string } }) {
-  const borrowerId = parseInt(params.id, 10);
+export async function GET(request: Request, {params}: { params: { id: string } }) {
+const borrowerId = parseInt(params.id, 10);
 
   if (isNaN(borrowerId)) {
     return NextResponse.json({ error: 'Invalid Borrower ID' }, { status: 400 });
@@ -25,9 +25,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
 }
 
 // PUT /api/borrowers/[id] - Update borrower by ID
-export async function PUT(request: Request, context: { params: { id: string } }) {
-   const { id } = await context.params;
-  const borrowerId = parseInt(id, 10);
+export async function PUT(request: Request, {params}: { params: { id: string } }) {
+const borrowerId = parseInt(params.id, 10);
 
   if (isNaN(borrowerId)) {
     return NextResponse.json({ error: 'Invalid Borrower ID' }, { status: 400 });
@@ -54,9 +53,8 @@ export async function PUT(request: Request, context: { params: { id: string } })
 }
 
 // DELETE /api/borrowers/[id] - Delete borrower by ID
-export async function DELETE(request: Request, context: { params: { id: string } }) {
-   const { id } = await context.params;
-  const borrowerId = parseInt(id, 10);
+export async function DELETE(request: Request, {params}: { params: { id: string } }) {
+const borrowerId = parseInt(params.id, 10);
 
   if (isNaN(borrowerId)) {
     return NextResponse.json({ error: 'Invalid Borrower ID' }, { status: 400 });
