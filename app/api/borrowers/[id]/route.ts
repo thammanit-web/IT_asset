@@ -1,11 +1,10 @@
 import { NextResponse,NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
 
-export async function GET(
-  req: NextRequest,
-  context: { params: { id: string } }
-) {
-  const borrowerId = parseInt(context.params.id, 10);
+export async function GET(request: Request, {params}: { params: { id: string } }) {
+  // Explicitly await context.params before destructuring
+const borrowerId = parseInt(params.id, 10);
+
 
   if (isNaN(borrowerId)) {
     return NextResponse.json({ error: 'Invalid Borrower ID' }, { status: 400 });
@@ -28,10 +27,9 @@ export async function GET(
 
 
 // PUT /api/borrowers/[id] - Update borrower by ID
-export async function PUT(  req: NextRequest,
-  context: { params: { id: string } }
-) {
-  const borrowerId = parseInt(context.params.id, 10);
+export async function PUT(request: Request, {params}: { params: { id: string } }) {
+  // Explicitly await context.params before destructuring
+const borrowerId = parseInt(params.id, 10);
 
   if (isNaN(borrowerId)) {
     return NextResponse.json({ error: 'Invalid Borrower ID' }, { status: 400 });
@@ -39,7 +37,7 @@ export async function PUT(  req: NextRequest,
 
   let data: any;
   try {
-    data = await req.json();
+    data = await request.json();
     const updatedBorrower = await prisma.borrower.update({
       where: { id: borrowerId },
       data: data,
@@ -58,10 +56,9 @@ export async function PUT(  req: NextRequest,
 }
 
 // DELETE /api/borrowers/[id] - Delete borrower by ID
-export async function DELETE(  req: NextRequest,
-  context: { params: { id: string } }
-) {
-  const borrowerId = parseInt(context.params.id, 10);
+export async function DELETE(request: Request, {params}: { params: { id: string } }) {
+  // Explicitly await context.params before destructuring
+const borrowerId = parseInt(params.id, 10);
   if (isNaN(borrowerId)) {
     return NextResponse.json({ error: 'Invalid Borrower ID' }, { status: 400 });
   }
