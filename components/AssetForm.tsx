@@ -12,7 +12,7 @@ interface AssetFormProps {
   isOpen: boolean;
 }
 
-const groupTypes: GroupType[] = ['computer', 'laptop', 'monitor', 'printer', 'server', 'network', 'other'];
+const groupTypes: GroupType[] = ['computer', 'laptop', 'monitor', 'printer', 'PC Only', 'network', 'other'];
 const statuses: AssetStatus[] = ['ใช้งาน' , 'ไม่ใช้งาน' , 'ซ่อมบำรุง' , 'สำรอง' , 'สูญหาย'];
 
 export default function AssetForm({ asset, onSubmit, onCancel, isOpen }: AssetFormProps) {

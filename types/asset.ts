@@ -51,7 +51,7 @@ export interface BorrowingRecordWithRelations extends BorrowingRecord {
   borrower: Borrower;
 }
 
-export type GroupType = 'computer' | 'laptop' | 'monitor' | 'printer' | 'server' | 'network' | 'other';
+export type GroupType = 'computer' | 'laptop' | 'monitor' | 'printer' | 'PC Only' | 'network' | 'other';
 
 export type AssetStatus = 'ใช้งาน' | 'ไม่ใช้งาน' | 'ซ่อมบำรุง' | 'สำรอง' | 'สูญหาย';
 

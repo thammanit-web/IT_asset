@@ -47,8 +47,8 @@ export async function GET(request: NextRequest) {
       prisma.asset.findMany({
         where,
         skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
+
+        orderBy: { createdAt: 'asc' },
       }),
       prisma.asset.count({ where }),
     ]);

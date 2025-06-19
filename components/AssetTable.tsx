@@ -5,6 +5,7 @@ import { Edit, Trash2, Eye, Download } from 'lucide-react';
 import Image from 'next/image';
 import * as XLSX from 'xlsx';
 import { useState } from 'react';
+import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'; // Import icons for sorting
 
 interface AssetTableProps {
   assets: Asset[];
@@ -15,6 +16,8 @@ interface AssetTableProps {
 
 export default function AssetTable({ assets, onEdit, onDelete, onView }: AssetTableProps) {
   const [isExporting, setIsExporting] = useState(false);
+  const [sortColumn, setSortColumn] = useState<keyof Asset | null>(null); // State for current sort column
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc'); // State for sort direction
 
   const formatDate = (date: Date | string) => {
     return new Date(date).toLocaleDateString('en-US', {
@@ -30,8 +33,7 @@ export default function AssetTable({ assets, onEdit, onDelete, onView }: AssetTa
         return 'bg-green-100 text-green-800';
       case 'ไม่ใช้งาน':
         return 'bg-gray-100 text-gray-800';
-      case 'ซ่อมบำรุง':
-        return 'bg-yellow-100 text-yellow-800';
+      case 'ซ่อมบำรuto':
       case 'สำรอง':
         return 'bg-red-100 text-red-800';
       case 'สูญหาย':
@@ -100,6 +102,68 @@ export default function AssetTable({ assets, onEdit, onDelete, onView }: AssetTa
     }
   };
 
+  // Function to handle sorting
+  const handleSort = (column: keyof Asset) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  // Sort assets based on sortColumn and sortDirection
+  const sortedAssets = [...assets].sort((a, b) => {
+    if (!sortColumn) return 0;
+
+    const aValue = a[sortColumn];
+    const bValue = b[sortColumn];
+
+    // --- MODIFIED LOGIC FOR assetID ---
+    if (sortColumn === 'assetID') {
+      const extractNumber = (id: string) => {
+        const match = id.match(/_(\d+)$/);
+        return match ? parseInt(match[1], 10) : 0; // Extract number after underscore
+      };
+
+      const numA = extractNumber(aValue as string);
+      const numB = extractNumber(bValue as string);
+
+      if (numA === numB) {
+        // If numbers are the same, fall back to full string comparison for stability
+        return sortDirection === 'asc' ? String(aValue).localeCompare(String(bValue)) : String(bValue).localeCompare(String(aValue));
+      }
+
+      return sortDirection === 'asc' ? numA - numB : numB - numA;
+    }
+    // --- END MODIFIED LOGIC ---
+
+    // Handle string comparisons (for other string columns)
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
+      return sortDirection === 'asc'
+        ? aValue.localeCompare(bValue)
+        : bValue.localeCompare(aValue);
+    }
+
+    // Handle date comparisons (for createdAt)
+    if (sortColumn === 'createdAt') {
+      const aDate = new Date(aValue as string).getTime();
+      const bDate = new Date(bValue as string).getTime();
+      return sortDirection === 'asc' ? aDate - bDate : bDate - aDate;
+    }
+
+    // Handle other types (e.g., numbers)
+    const aComp = aValue ?? '';
+    const bComp = bValue ?? '';
+    if (aComp < bComp) {
+      return sortDirection === 'asc' ? -1 : 1;
+    }
+    if (aComp > bComp) {
+      return sortDirection === 'asc' ? 1 : -1;
+    }
+    return 0;
+  });
+
   if (assets.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
@@ -132,26 +196,71 @@ export default function AssetTable({ assets, onEdit, onDelete, onView }: AssetTa
               <th className="">
                 รูปภาพ
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                ชื่อครุภัณฑ์
+              <th
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('assetName')}
+              >
+                <div className="flex items-center">
+                  ชื่อครุภัณฑ์
+                  {sortColumn === 'assetName' && (
+                    sortDirection === 'asc' ? <ArrowUp size={14} className="ml-1" /> : <ArrowDown size={14} className="ml-1" />
+                  )}
+                  {sortColumn !== 'assetName' && <ArrowUpDown size={14} className="ml-1 text-gray-400" />}
+                </div>
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                หมายเลขครุภัณฑ์
+              <th
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('assetID')}
+              >
+                <div className="flex items-center">
+                  หมายเลขครุภัณฑ์
+                  {sortColumn === 'assetID' && (
+                    sortDirection === 'asc' ? <ArrowUp size={14} className="ml-1" /> : <ArrowDown size={14} className="ml-1" />
+                  )}
+                  {sortColumn !== 'assetID' && <ArrowUpDown size={14} className="ml-1 text-gray-400" />}
+                </div>
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                ประเภท
+              <th
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('groupType')}
+              >
+                <div className="flex items-center">
+                  ประเภท
+                  {sortColumn === 'groupType' && (
+                    sortDirection === 'asc' ? <ArrowUp size={14} className="ml-1" /> : <ArrowDown size={14} className="ml-1" />
+                  )}
+                  {sortColumn !== 'groupType' && <ArrowUpDown size={14} className="ml-1 text-gray-400" />}
+                </div>
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                สถานะ
+              <th
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('status')}
+              >
+                <div className="flex items-center">
+                  สถานะ
+                  {sortColumn === 'status' && (
+                    sortDirection === 'asc' ? <ArrowUp size={14} className="ml-1" /> : <ArrowDown size={14} className="ml-1" />
+                  )}
+                  {sortColumn !== 'status' && <ArrowUpDown size={14} className="ml-1 text-gray-400" />}
+                </div>
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                เวลาที่เพิ่ม
+              <th
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('createdAt')}
+              >
+                <div className="flex items-center">
+                  เวลาที่เพิ่ม
+                  {sortColumn === 'createdAt' && (
+                    sortDirection === 'asc' ? <ArrowUp size={14} className="ml-1" /> : <ArrowDown size={14} className="ml-1" />
+                  )}
+                  {sortColumn !== 'createdAt' && <ArrowUpDown size={14} className="ml-1 text-gray-400" />}
+                </div>
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {assets.map((asset) => (
+            {sortedAssets.map((asset) => (
               <tr key={asset.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="relative w-12 h-12 overflow-hidden rounded-md">

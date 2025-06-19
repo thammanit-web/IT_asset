@@ -1,10 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import {
   fetchBorrowingRecords, createBorrowingRecord, updateBorrowingRecord, deleteBorrowingRecord,
   fetchAssets, fetchBorrowers, Asset, Borrower, BorrowingRecordWithRelations
 } from '@/lib/api';
 import Dialog from '@/components/Dialog';
+
+type SortKeys = keyof BorrowingRecordWithRelations | 'assetName' | 'borrowerName' | 'borrowDate' | 'status'; // Add specific keys for sorting nested properties
+type SortDirection = 'asc' | 'desc';
 
 const BorrowingRecordManagement: React.FC = () => {
   const [records, setRecords] = useState<BorrowingRecordWithRelations[]>([]);
@@ -15,6 +18,10 @@ const BorrowingRecordManagement: React.FC = () => {
   const [isBorrowFormOpen, setIsBorrowFormOpen] = useState<boolean>(false);
   const [isReturnConfirmOpen, setIsReturnConfirmOpen] = useState<boolean>(false);
   const [selectedRecordToReturn, setSelectedRecordToReturn] = useState<BorrowingRecordWithRelations | null>(null);
+
+  // Sorting state
+  const [sortKey, setSortKey] = useState<SortKeys>('borrowDate');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
   const [borrowFormData, setBorrowFormData] = useState({
     assetId: '',
@@ -122,8 +129,8 @@ const BorrowingRecordManagement: React.FC = () => {
       'แผนก': record.borrower?.department || 'N/A',
       'หมายเลขติดต่อ': record.borrower?.contactPhone || 'N/A',
       'วันที่ยืม': new Date(record.borrowDate).toLocaleDateString('th-TH'),
-      'วันที่คืน': record.returnDate 
-        ? new Date(record.returnDate).toLocaleDateString('th-TH') 
+      'วันที่คืน': record.returnDate
+        ? new Date(record.returnDate).toLocaleDateString('th-TH')
         : 'ยังไม่คืน',
       'สถานะ': record.status,
       'หมายเหตุ': record.notes || 'ไม่มี',
@@ -135,20 +142,17 @@ const BorrowingRecordManagement: React.FC = () => {
 
     // Set column widths for better readability
     const colWidths = [
-      { wch: 8 },   // ลำดับ
-      { wch: 15 },  // รหัสครุภัณฑ์
-      { wch: 25 },  // ชื่อครุภัณฑ์
-      { wch: 15 },  // ประเภทครุภัณฑ์
-      { wch: 20 },  // ชื่อผู้ยืม
-      { wch: 15 },  // แผนก
-      { wch: 15 },  // หมายเลขติดต่อ
-      { wch: 15 },  // วันที่ยืม
-      { wch: 18 },  // วันที่คืน (คาดหวัง)
-      { wch: 15 },  // วันที่คืน (จริง)
-      { wch: 10 },  // สถานะ
-      { wch: 20 },  // หมายเหตุ
-      { wch: 18 },  // วันที่สร้างบันทึก
-      { wch: 18 }   // วันที่อัปเดตล่าสุด
+      { wch: 8 },    // ลำดับ
+      { wch: 15 },   // รหัสครุภัณฑ์
+      { wch: 25 },   // ชื่อครุภัณฑ์
+      { wch: 15 },   // ประเภทครุภัณฑ์
+      { wch: 20 },   // ชื่อผู้ยืม
+      { wch: 15 },   // แผนก
+      { wch: 15 },   // หมายเลขติดต่อ
+      { wch: 15 },   // วันที่ยืม
+      { wch: 18 },   // วันที่คืน (คาดหวัง) - this was missing in original export but is now added.
+      { wch: 15 },   // สถานะ
+      { wch: 20 },   // หมายเหตุ
     ];
     ws['!cols'] = colWidths;
 
@@ -163,11 +167,88 @@ const BorrowingRecordManagement: React.FC = () => {
     XLSX.writeFile(wb, filename);
   };
 
+  // --- Sorting Logic ---
+  const sortData = (key: SortKeys) => {
+    if (sortKey === key) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDirection('asc');
+    }
+  };
+
+  const sortedRecords = useMemo(() => {
+    const sortableItems = [...records];
+    if (sortableItems.length > 0) {
+      sortableItems.sort((a, b) => {
+        let valA: any;
+        let valB: any;
+
+        switch (sortKey) {
+          case 'assetName':
+            valA = a.asset?.assetName || '';
+            valB = b.asset?.assetName || '';
+            break;
+          case 'borrowerName':
+            valA = a.borrower?.fullName || '';
+            valB = b.borrower?.fullName || '';
+            break;
+          case 'borrowDate':
+            valA = new Date(a.borrowDate).getTime();
+            valB = new Date(b.borrowDate).getTime();
+            break;
+          case 'returnDate':
+            // Handle null/undefined return dates gracefully for sorting
+            valA = a.returnDate ? new Date(a.returnDate).getTime() : -Infinity; // Returned items first
+            valB = b.returnDate ? new Date(b.returnDate).getTime() : -Infinity;
+            break;
+          case 'status':
+            valA = a.status;
+            valB = b.status;
+            break;
+          default:
+            // Fallback for direct properties, though not used in this example
+            valA = (a as any)[sortKey];
+            valB = (b as any)[sortKey];
+            break;
+        }
+
+        if (typeof valA === 'string' && typeof valB === 'string') {
+          return sortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        } else {
+          return sortDirection === 'asc' ? (valA - valB) : (valB - valA);
+        }
+      });
+    }
+    return sortableItems;
+  }, [records, sortKey, sortDirection]);
+  // --- End Sorting Logic ---
+
+  const getSortIcon = (key: SortKeys) => {
+    if (sortKey === key) {
+      return sortDirection === 'asc' ? (
+        <svg className="ml-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z" clipRule="evenodd" />
+        </svg>
+      ) : (
+        <svg className="ml-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
+        </svg>
+      );
+    }
+    return (
+      <svg className="ml-1 h-3 w-3 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+        <path fillRule="evenodd" d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.707a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+      </svg>
+    );
+  };
+
+
   return (
-     <div className="space-y-4">
+    <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-800">บันทึกการยืมครุภัณฑ์</h1>
-        
+
         <div className="flex space-x-3">
           <button
             onClick={exportToExcel}
@@ -177,9 +258,9 @@ const BorrowingRecordManagement: React.FC = () => {
             <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-           Export to Excel
+            Export to Excel
           </button>
-          
+
           <button
             onClick={() => { setIsBorrowFormOpen(true); resetBorrowForm(); }}
             className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -205,23 +286,63 @@ const BorrowingRecordManagement: React.FC = () => {
         </div>
       )}
 
-      <div className="">
-        
-        
+      <div>
         <div className="overflow-x-auto">
           <table className="min-w-full bg-white border border-gray-200 rounded-lg">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ชื่อครุภัณฑ์</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ชื่อผู้ยืม</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">วันที่ยืม</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">วันที่คืน</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">สถานะ</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">การจัดการ</th>
+                <th
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                  onClick={() => sortData('assetName')}
+                >
+                  <div className="flex items-center">
+                    ชื่อครุภัณฑ์
+                    {getSortIcon('assetName')}
+                  </div>
+                </th>
+                <th
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                  onClick={() => sortData('borrowerName')}
+                >
+                  <div className="flex items-center">
+                    ชื่อผู้ยืม
+                    {getSortIcon('borrowerName')}
+                  </div>
+                </th>
+                <th
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                  onClick={() => sortData('borrowDate')}
+                >
+                  <div className="flex items-center">
+                    วันที่ยืม
+                    {getSortIcon('borrowDate')}
+                  </div>
+                </th>
+                <th
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                  onClick={() => sortData('returnDate')}
+                >
+                  <div className="flex items-center">
+                    วันที่คืน
+                    {getSortIcon('returnDate')}
+                  </div>
+                </th>
+                <th
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                  onClick={() => sortData('status')}
+                >
+                  <div className="flex items-center">
+                    สถานะ
+                    {getSortIcon('status')}
+                  </div>
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  การจัดการ
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {records.length === 0 && !loading && !error && (
+              {sortedRecords.length === 0 && !loading && !error ? (
                 <tr>
                   <td colSpan={6} className="py-8 px-4 text-center text-gray-500">
                     <div className="flex flex-col items-center">
@@ -232,52 +353,53 @@ const BorrowingRecordManagement: React.FC = () => {
                     </div>
                   </td>
                 </tr>
-              )}
-              {records.map((record) => (
-                <tr key={record.id} className="hover:bg-gray-50 transition-colors duration-150">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{record.asset?.assetName || 'N/A'}</div>
-                    <div className="text-sm text-gray-500">({record.asset?.assetID || 'N/A'})</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{record.borrower?.fullName || 'N/A'}</div>
-                    <div className="text-sm text-gray-500">({record.borrower?.department || 'N/A'})</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {new Date(record.borrowDate).toLocaleDateString('th-TH')}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {record.returnDate ? new Date(record.returnDate).toLocaleDateString('th-TH') : 'รอการคืน'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      record.status === 'ยืม' ? 'bg-orange-100 text-orange-800' :
-                      record.status === 'คืนแล้ว' ? 'bg-green-100 text-green-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {record.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
-                      {record.status === 'ยืม' && (
+              ) : (
+                sortedRecords.map((record) => (
+                  <tr key={record.id} className="hover:bg-gray-50 transition-colors duration-150">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{record.asset?.assetName || 'N/A'}</div>
+                      <div className="text-sm text-gray-500">({record.asset?.assetID || 'N/A'})</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{record.borrower?.fullName || 'N/A'}</div>
+                      <div className="text-sm text-gray-500">({record.borrower?.department || 'N/A'})</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {new Date(record.borrowDate).toLocaleDateString('th-TH')}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {record.returnDate ? new Date(record.returnDate).toLocaleDateString('th-TH') : 'รอการคืน'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        record.status === 'ยืม' ? 'bg-orange-100 text-orange-800' :
+                          record.status === 'คืนแล้ว' ? 'bg-green-100 text-green-800' :
+                            'bg-gray-100 text-gray-800'
+                        }`}>
+                        {record.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex space-x-2">
+                        {record.status === 'ยืม' && (
+                          <button
+                            onClick={() => handleReturnClick(record)}
+                            className="inline-flex items-center px-3 py-1 bg-green-500 text-white rounded-md text-sm hover:bg-green-600 transition-colors duration-150"
+                          >
+                            คืนแล้ว
+                          </button>
+                        )}
                         <button
-                          onClick={() => handleReturnClick(record)}
-                          className="inline-flex items-center px-3 py-1 bg-green-500 text-white rounded-md text-sm hover:bg-green-600 transition-colors duration-150"
+                          onClick={() => handleDeleteRecord(record.id)}
+                          className="inline-flex items-center px-3 py-1 bg-red-500 text-white rounded-md text-sm hover:bg-red-600 transition-colors duration-150"
                         >
-                          คืนแล้ว
+                          ลบ
                         </button>
-                      )}
-                      <button
-                        onClick={() => handleDeleteRecord(record.id)}
-                        className="inline-flex items-center px-3 py-1 bg-red-500 text-white rounded-md text-sm hover:bg-red-600 transition-colors duration-150"
-                      >
-                        ลบ
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -308,7 +430,7 @@ const BorrowingRecordManagement: React.FC = () => {
               ))}
             </select>
             {assets.filter(asset => asset.status === 'ใช้งาน').length === 0 && (
-                <p className="text-sm text-red-500 mt-1">ไม่มีครุภัณฑ์ที่พร้อมใช้งาน</p>
+              <p className="text-sm text-red-500 mt-1">ไม่มีครุภัณฑ์ที่พร้อมใช้งาน</p>
             )}
           </div>
           <div>
@@ -329,7 +451,7 @@ const BorrowingRecordManagement: React.FC = () => {
               ))}
             </select>
             {borrowers.length === 0 && (
-                <p className="text-sm text-red-500 mt-1">ไม่มีข้อมูลผู้ยืม กรุณาเพิ่มผู้ยืมก่อน</p>
+              <p className="text-sm text-red-500 mt-1">ไม่มีข้อมูลผู้ยืม กรุณาเพิ่มผู้ยืมก่อน</p>
             )}
           </div>
           <div>
@@ -389,7 +511,7 @@ const BorrowingRecordManagement: React.FC = () => {
           </div>
           <p className="text-gray-700 mb-4">
             ต้องการทำเครื่องหมายว่าได้คืน "
-            <span className="font-semibold text-indigo-600">{selectedRecordToReturn?.asset.assetName}</span>" แล้วหรือไม่?
+            <span className="font-semibold text-indigo-600">{selectedRecordToReturn?.asset?.assetName}</span>" แล้วหรือไม่?
           </p>
         </div>
         <div className="flex justify-center space-x-3 mt-6">
